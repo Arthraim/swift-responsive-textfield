@@ -100,7 +100,11 @@ public struct ResponsiveTextField {
     /// the change is permitted.
     ///
     /// Return `true` to allow the change or `false` to prevent the change.
-    var shouldChange: ((String, String) -> Bool)?
+    var shouldChange: ((UITextField, String, String) -> Bool)?
+
+
+    /// A callback function that can be used to get notified when the text change.
+    var handleDidChange: ((UITextField) -> Void)?
 
     /// A list of supported standard editing actions.
     ///
@@ -136,7 +140,8 @@ public struct ResponsiveTextField {
         onFirstResponderStateChanged: FirstResponderStateChangeHandler? = nil,
         handleReturn: (() -> Void)? = nil,
         handleDelete: ((String) -> Void)? = nil,
-        shouldChange: ((String, String) -> Bool)? = nil,
+        shouldChange: ((UITextField, String, String) -> Bool)? = nil,
+        handleDidChange: ((UITextField) -> Void)? = nil,
         supportedStandardEditActions: Set<StandardEditAction>? = nil,
         standardEditActionHandler: StandardEditActionHandling<UITextField>? = nil
     ) {
@@ -150,6 +155,7 @@ public struct ResponsiveTextField {
         self.handleReturn = handleReturn
         self.handleDelete = handleDelete
         self.shouldChange = shouldChange
+        self.handleDidChange = handleDidChange
         self.supportedStandardEditActions = supportedStandardEditActions
         self.standardEditActionHandler = standardEditActionHandler
     }
@@ -470,13 +476,14 @@ extension ResponsiveTextField: UIViewRepresentable {
                     return false // when would this conversion fail?
                 }
                 let newText = currentText.replacingCharacters(in: newRange, with: string)
-                return shouldChange(currentText, newText)
+                return shouldChange(textField, currentText, newText)
             }
             return true
         }
 
         @objc func textFieldTextChanged(_ textField: UITextField) {
             self.text = textField.text ?? ""
+            parent.handleDidChange?(textField)
         }
     }
 }
@@ -601,7 +608,7 @@ struct ResponsiveTextField_Previews: PreviewProvider {
                 text: $text,
                 firstResponderDemand: $firstResponderDemand,
                 configuration: configuration,
-                shouldChange: { $1.count <= 10 }
+                shouldChange: { $2.count <= 10 }
             )
             .fixedSize(horizontal: false, vertical: true)
             .padding()
